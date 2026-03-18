@@ -112,6 +112,8 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/tello_driver" TYPE PROGRAM FILES
     "/home/elyes/CATKIN_WS/src/tello_driver/nodes/tello_driver_node"
     "/home/elyes/CATKIN_WS/src/tello_driver/nodes/gamepad_teleop_node"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/tello_vision_node.py"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/tello_control_node.py"
     )
 endif()
 
