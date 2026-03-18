@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="launch_driver" default="true" />
+  <arg name="detector_backend" default="hog" />
+  <arg name="show_debug" default="true" />
+
+  <group if="$(arg launch_driver)">
+    <include file="$(find tello_driver)/launch/tello_node.launch">
+      <arg name="namespace" value="$(arg namespace)" />
+    </include>
+  </group>
+
+  <node pkg="tello_driver" type="tello_vision_node.py" name="tello_vision_node" output="screen">
+    <param name="image_topic" value="/$(arg namespace)/image_raw" />
+    <param name="count_topic" value="/$(arg namespace)/object_count" />
+    <param name="detector_backend" value="$(arg detector_backend)" />
+    <param name="show_debug" value="$(arg show_debug)" />
+  </node>
+</launch>

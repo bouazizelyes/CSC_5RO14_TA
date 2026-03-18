@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
+
+  <node pkg="tello_driver" type="tello_control_node.py" name="tello_control_node" output="screen">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="object_count_topic" value="/$(arg namespace)/object_count" />
+    <param name="localization_only" value="true" />
+    <param name="enable_autonomy" value="false" />
+    <param name="takeoff_on_start" value="false" />
+  </node>
+</launch>

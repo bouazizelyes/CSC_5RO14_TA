@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
+  <arg name="detector_backend" default="hog" />
+  <arg name="safe_wall_distance" default="1.0" />
+  <arg name="target_count" default="10" />
+
+  <include file="$(find tello_driver)/launch/tello_node.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+  </include>
+
+  <node pkg="tello_driver" type="tello_vision_node.py" name="tello_vision_node" output="screen">
+    <param name="image_topic" value="/$(arg namespace)/image_raw" />
+    <param name="count_topic" value="/$(arg namespace)/object_count" />
+    <param name="detector_backend" value="$(arg detector_backend)" />
+    <param name="show_debug" value="true" />
+  </node>
+
+  <node pkg="tello_driver" type="tello_control_node.py" name="tello_control_node" output="screen">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="object_count_topic" value="/$(arg namespace)/object_count" />
+    <param name="manual_cmd_topic" value="/$(arg namespace)/cmd_vel_user" />
+    <param name="enable_autonomy" value="true" />
+    <param name="allow_manual_input" value="true" />
+    <param name="takeoff_on_start" value="true" />
+    <param name="safe_wall_distance" value="$(arg safe_wall_distance)" />
+    <param name="target_count" value="$(arg target_count)" />
+  </node>
+</launch>
