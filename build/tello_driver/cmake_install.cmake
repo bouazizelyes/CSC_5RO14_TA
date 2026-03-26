@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "")
+    set(CMAKE_INSTALL_CONFIG_NAME "Release")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -109,11 +109,22 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/etc/catkin/profile.d" TYPE FILE FILES "/home/elyes/CATKIN_WS/src/tello_driver/env-hooks/50.tello_venv.sh")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/tello_driver/catkin_env_hook" TYPE FILE FILES "/home/elyes/CATKIN_WS/src/tello_driver/env-hooks/50.tello_venv.sh")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/tello_driver" TYPE PROGRAM FILES
     "/home/elyes/CATKIN_WS/src/tello_driver/nodes/tello_driver_node"
     "/home/elyes/CATKIN_WS/src/tello_driver/nodes/gamepad_teleop_node"
     "/home/elyes/CATKIN_WS/src/tello_driver/scripts/tello_vision_node.py"
     "/home/elyes/CATKIN_WS/src/tello_driver/scripts/tello_control_node.py"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/fake_pose_publisher.py"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/mapping_logger_node.py"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/run_bench_safe.sh"
     )
 endif()
 

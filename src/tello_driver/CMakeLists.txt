@@ -135,6 +135,9 @@ include_directories(
 #  ${OpenCV_INCLUDE_DIRS}
 )
 
+# Run workspace-specific shell hook on setup.* sourcing.
+catkin_add_env_hooks(50.tello_venv SHELLS sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
+
 
 
 #############
@@ -151,6 +154,9 @@ install(PROGRAMS
   nodes/gamepad_teleop_node
   scripts/tello_vision_node.py
   scripts/tello_control_node.py
+  scripts/fake_pose_publisher.py
+  scripts/mapping_logger_node.py
+  scripts/run_bench_safe.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -11,7 +11,7 @@
   </include>
 
   <node pkg="tello_driver" type="tello_vision_node.py" name="tello_vision_node" output="screen">
-    <param name="image_topic" value="/$(arg namespace)/image_raw" />
+    <param name="image_topic" value="/$(arg namespace)/camera/image_raw" />
     <param name="count_topic" value="/$(arg namespace)/object_count" />
     <param name="detector_backend" value="$(arg detector_backend)" />
     <param name="show_debug" value="true" />

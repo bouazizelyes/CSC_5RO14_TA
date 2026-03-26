@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
+  <arg name="detector_backend" default="hog" />
+  <arg name="safe_wall_distance" default="1.0" />
+  <arg name="target_count" default="8" />
+
+  <arg name="output_root" default="$(env HOME)/tello_mapping_data" />
+  <arg name="capture_fps" default="2.0" />
+
+  <include file="$(find tello_driver)/launch/phase4_autonomy.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="pose_topic" value="$(arg pose_topic)" />
+    <arg name="detector_backend" value="$(arg detector_backend)" />
+    <arg name="safe_wall_distance" value="$(arg safe_wall_distance)" />
+    <arg name="target_count" value="$(arg target_count)" />
+  </include>
+
+  <node pkg="tello_driver" type="mapping_logger_node.py" name="mapping_logger_node" output="screen">
+    <param name="image_topic" value="/$(arg namespace)/camera/image_raw" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="output_root" value="$(arg output_root)" />
+    <param name="capture_fps" value="$(arg capture_fps)" />
+    <param name="jpeg_quality" value="90" />
+  </node>
+</launch>

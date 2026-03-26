@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="detector_backend" default="yolo" />
+  <arg name="show_debug" default="true" />
+  <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
+
+  <arg name="fake_pose_rate_hz" default="20.0" />
+  <arg name="fake_pose_x" default="0.0" />
+  <arg name="fake_pose_y" default="0.0" />
+  <arg name="fake_pose_z" default="1.0" />
+
+  <include file="$(find tello_driver)/launch/tello_node.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+  </include>
+
+  <include file="$(find tello_driver)/launch/phase2_cv.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="launch_driver" value="false" />
+    <arg name="detector_backend" value="$(arg detector_backend)" />
+    <arg name="show_debug" value="$(arg show_debug)" />
+  </include>
+
+  <node pkg="tello_driver" type="fake_pose_publisher.py" name="fake_pose_publisher" output="screen">
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="rate_hz" value="$(arg fake_pose_rate_hz)" />
+    <param name="x" value="$(arg fake_pose_x)" />
+    <param name="y" value="$(arg fake_pose_y)" />
+    <param name="z" value="$(arg fake_pose_z)" />
+    <param name="qx" value="0.0" />
+    <param name="qy" value="0.0" />
+    <param name="qz" value="0.0" />
+    <param name="qw" value="1.0" />
+  </node>
+
+  <include file="$(find tello_driver)/launch/phase3_localization.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="pose_topic" value="$(arg pose_topic)" />
+  </include>
+</launch>

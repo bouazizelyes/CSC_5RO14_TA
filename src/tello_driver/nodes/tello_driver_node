@@ -14,6 +14,7 @@ import math
 import numpy as np
 import threading
 import time
+import importlib
 from tellopy._internal import tello
 from tellopy._internal import error
 from tellopy._internal import protocol
@@ -90,6 +91,7 @@ class TelloNode(tello.Tello):
             rospy.get_param('~stream_h264_video', False))
         self.bridge = CvBridge()
         self.frame_thread = None
+        self.pyav = None
 
         # Connect to drone
         self.log = RospyLogger('Tello')
@@ -160,20 +162,30 @@ class TelloNode(tello.Tello):
 
         self.sub_zoom = rospy.Subscriber('video_mode', Empty, self.cb_video_mode, queue_size=1)
 
+        calib_path = rospy.get_param('~camera_calibration', '')
+        self.caminfo = cim.loadCalibrationFile(calib_path, 'camera_front')
+        self.caminfo.header.frame_id = rospy.get_param('~camera_frame', rospy.get_namespace() + 'camera_front')
+        self.pub_caminfo = rospy.Publisher('camera/camera_info', CameraInfo, queue_size=1, latch=True)
+        self.pub_caminfo.publish(self.caminfo)
+
         if self.stream_h264_video:
             self.start_video()
             self.subscribe(self.EVENT_VIDEO_DATA, self.cb_video_data)            
             self.subscribe(self.EVENT_VIDEO_FRAME_H264, self.cb_h264_frame)
         else:
+            try:
+                # Raw image mode decodes H264 in-process and requires PyAV.
+                self.pyav = importlib.import_module('av')
+            except ImportError:
+                msg = ('PyAV is required for raw image stream mode. '
+                       'Install it with: sudo apt install python3-av')
+                rospy.logfatal(msg)
+                rospy.signal_shutdown(msg)
+                self.quit()
+                return
             
             self.frame_thread = threading.Thread(target=self.framegrabber_loop)
             self.frame_thread.start()
-
-        calib_path = rospy.get_param('~camera_calibration', '') 
-        self.caminfo = cim.loadCalibrationFile(calib_path, 'camera_front')
-        self.caminfo.header.frame_id = rospy.get_param('~camera_frame', rospy.get_namespace() + 'camera_front')
-        self.pub_caminfo = rospy.Publisher('camera/camera_info', CameraInfo, queue_size=1, latch=True)                
-        self.pub_caminfo.publish(self.caminfo)
 
         self.sub_emergency = rospy.Subscriber('emergency', Empty, self.cb_emergency, queue_size=1)               
         
@@ -473,7 +485,7 @@ class TelloNode(tello.Tello):
         self.pub_caminfo.publish(self.caminfo)        
 
     def framegrabber_loop(self):
-        import av #Import here as 'hack' to prevent troublesome install of PyAV when not used
+        av = self.pyav
         # Repeatedly try to connect
         vs = self.get_video_stream()
         while self.state != self.STATE_QUIT:
