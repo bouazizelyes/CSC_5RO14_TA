@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="namespace" default="tello" />
+  <arg name="pose_topic" default="/vrpn_client_node/Telloyes/pose" />
+  <arg name="launch_driver" default="true" />
+  <arg name="live_view" default="true" />
+  <arg name="live_view_topic" default="/$(arg namespace)/camera/image_raw" />
+
+  <arg name="room_x_min" default="-1.56" />
+  <arg name="room_x_max" default="1.68" />
+  <arg name="room_y_min" default="-1.01" />
+  <arg name="room_y_max" default="2.06" />
+  <arg name="room_z_min" default="0.06" />
+  <arg name="room_z_max" default="1.80" />
+
+  <arg name="move_speed" default="0.45" />
+  <arg name="pause_sec" default="1.2" />
+  <arg name="goal_tolerance_xy" default="0.18" />
+  <arg name="goal_timeout_sec" default="18.0" />
+  <arg name="xy_kp" default="0.9" />
+  <arg name="near_wall_slowdown_dist" default="0.45" />
+  <arg name="near_wall_stop_dist" default="0.12" />
+  <arg name="near_wall_min_speed_scale" default="0.25" />
+  <arg name="near_wall_retreat_speed" default="0.18" />
+  <arg name="near_wall_retreat_sec" default="0.8" />
+  <arg name="control_mode" default="world_direct" />
+  <arg name="boundary_margin_xy" default="0.25" />
+  <arg name="boundary_margin_z" default="0.20" />
+  <arg name="require_fresh_pose" default="true" />
+  <arg name="pose_timeout_sec" default="0.25" />
+  <arg name="pose_wait_before_takeoff_sec" default="8.0" />
+  <arg name="abort_takeoff_if_no_pose" default="true" />
+  <arg name="stagnation_window_sec" default="2.0" />
+  <arg name="min_motion_for_progress" default="0.05" />
+  <arg name="takeoff_on_start" default="true" />
+  <arg name="takeoff_retry_period_sec" default="1.0" />
+  <arg name="takeoff_confirm_timeout_sec" default="10.0" />
+
+  <group if="$(arg launch_driver)">
+    <include file="$(find tello_driver)/launch/tello_node.launch">
+      <arg name="namespace" value="$(arg namespace)" />
+    </include>
+  </group>
+
+  <node pkg="tello_driver" type="simple_patrol_node.py" name="simple_patrol_node" output="screen">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+
+    <param name="room_x_min" value="$(arg room_x_min)" />
+    <param name="room_x_max" value="$(arg room_x_max)" />
+    <param name="room_y_min" value="$(arg room_y_min)" />
+    <param name="room_y_max" value="$(arg room_y_max)" />
+    <param name="room_z_min" value="$(arg room_z_min)" />
+    <param name="room_z_max" value="$(arg room_z_max)" />
+
+    <param name="boundary_margin_xy" value="$(arg boundary_margin_xy)" />
+    <param name="boundary_margin_z" value="$(arg boundary_margin_z)" />
+
+    <param name="move_speed" value="$(arg move_speed)" />
+    <param name="pause_sec" value="$(arg pause_sec)" />
+    <param name="goal_tolerance_xy" value="$(arg goal_tolerance_xy)" />
+    <param name="goal_timeout_sec" value="$(arg goal_timeout_sec)" />
+    <param name="xy_kp" value="$(arg xy_kp)" />
+    <param name="near_wall_slowdown_dist" value="$(arg near_wall_slowdown_dist)" />
+    <param name="near_wall_stop_dist" value="$(arg near_wall_stop_dist)" />
+    <param name="near_wall_min_speed_scale" value="$(arg near_wall_min_speed_scale)" />
+    <param name="near_wall_retreat_speed" value="$(arg near_wall_retreat_speed)" />
+    <param name="near_wall_retreat_sec" value="$(arg near_wall_retreat_sec)" />
+    <param name="control_mode" value="$(arg control_mode)" />
+    <param name="require_fresh_pose" value="$(arg require_fresh_pose)" />
+    <param name="pose_timeout_sec" value="$(arg pose_timeout_sec)" />
+    <param name="pose_wait_before_takeoff_sec" value="$(arg pose_wait_before_takeoff_sec)" />
+    <param name="abort_takeoff_if_no_pose" value="$(arg abort_takeoff_if_no_pose)" />
+    <param name="stagnation_window_sec" value="$(arg stagnation_window_sec)" />
+    <param name="min_motion_for_progress" value="$(arg min_motion_for_progress)" />
+    <param name="loop_forever" value="true" />
+
+    <param name="hold_altitude" value="true" />
+    <param name="target_z" value="1.0" />
+    <param name="z_kp" value="0.7" />
+    <param name="max_z_speed" value="0.12" />
+
+    <param name="takeoff_on_start" value="$(arg takeoff_on_start)" />
+    <param name="takeoff_settle_sec" value="3.0" />
+    <param name="takeoff_retry_period_sec" value="$(arg takeoff_retry_period_sec)" />
+    <param name="takeoff_confirm_timeout_sec" value="$(arg takeoff_confirm_timeout_sec)" />
+    <param name="land_on_shutdown" value="false" />
+  </node>
+
+  <group if="$(arg live_view)">
+    <node pkg="image_view" type="image_view" name="simple_patrol_live_view" output="screen">
+      <remap from="image" to="$(arg live_view_topic)" />
+    </node>
+  </group>
+</launch>

@@ -4,7 +4,12 @@
   <arg name="launch_driver" default="true" />
   <arg name="detector_backend" default="yolo" />
   <arg name="yolo_model" default="yolov8n.pt" />
+  <arg name="yolo_allow_download" default="false" />
   <arg name="yolo_device" default="auto" />
+  <arg name="yolo_imgsz" default="416" />
+  <arg name="yolo_max_det" default="20" />
+  <arg name="yolo_person_only" default="true" />
+  <arg name="process_every_n_frames" default="2" />
   <arg name="show_debug" default="true" />
 
   <group if="$(arg launch_driver)">
@@ -18,7 +23,12 @@
     <param name="count_topic" value="/$(arg namespace)/object_count" />
     <param name="detector_backend" value="$(arg detector_backend)" />
     <param name="yolo_model" value="$(arg yolo_model)" />
+    <param name="yolo_allow_download" value="$(arg yolo_allow_download)" />
     <param name="yolo_device" value="$(arg yolo_device)" />
+    <param name="yolo_imgsz" value="$(arg yolo_imgsz)" />
+    <param name="yolo_max_det" value="$(arg yolo_max_det)" />
+    <param name="yolo_person_only" value="$(arg yolo_person_only)" />
+    <param name="process_every_n_frames" value="$(arg process_every_n_frames)" />
     <param name="show_debug" value="$(arg show_debug)" />
   </node>
 </launch>

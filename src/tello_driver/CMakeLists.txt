@@ -157,6 +157,10 @@ install(PROGRAMS
   scripts/fake_pose_publisher.py
   scripts/mapping_logger_node.py
   scripts/run_bench_safe.sh
+  scripts/run_bench_vrpn.sh
+  scripts/run_phase4_autonomy.sh
+  scripts/run_simple_patrol.sh
+  scripts/simple_patrol_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

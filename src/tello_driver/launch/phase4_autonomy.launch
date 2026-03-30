@@ -3,8 +3,45 @@
   <arg name="namespace" default="tello" />
   <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
   <arg name="detector_backend" default="hog" />
+  <arg name="yolo_model" default="yolov8n.pt" />
+  <arg name="yolo_allow_download" default="false" />
+  <arg name="yolo_device" default="auto" />
+  <arg name="yolo_imgsz" default="416" />
+  <arg name="yolo_max_det" default="20" />
+  <arg name="yolo_person_only" default="true" />
+  <arg name="min_unique_confirmations" default="2" />
+  <arg name="process_every_n_frames" default="2" />
+  <arg name="show_debug" default="false" />
+  <arg name="live_view" default="true" />
+  <arg name="live_view_topic" default="/$(arg namespace)/camera/detections" />
   <arg name="safe_wall_distance" default="1.0" />
+  <arg name="safe_wall_distance_xy" default="1.0" />
+  <arg name="safe_wall_distance_z" default="0.35" />
   <arg name="target_count" default="10" />
+  <arg name="land_on_target_count" default="false" />
+  <arg name="allow_manual_input" default="false" />
+  <arg name="stop_on_count_event" default="false" />
+  <arg name="room_x_min" default="1.2" />
+  <arg name="room_x_max" default="4.9" />
+  <arg name="room_y_min" default="0.6" />
+  <arg name="room_y_max" default="5.4" />
+  <arg name="room_z_min" default="-0.55" />
+  <arg name="room_z_max" default="1.7" />
+  <arg name="avoid_speed" default="0.2" />
+  <arg name="search_speed_x" default="0.12" />
+  <arg name="search_speed_y" default="0.10" />
+  <arg name="search_speed_z" default="0.08" />
+  <arg name="search_segment_duration" default="5.0" />
+  <arg name="search_lane_spacing_y" default="0.8" />
+  <arg name="search_layer_spacing_z" default="0.35" />
+  <arg name="search_waypoint_tolerance_xy" default="0.20" />
+  <arg name="search_waypoint_tolerance_z" default="0.15" />
+  <arg name="search_kp_xy" default="0.8" />
+  <arg name="search_kp_z" default="0.8" />
+  <arg name="clearance_hysteresis" default="0.25" />
+  <arg name="takeoff_settle_sec" default="4.0" />
+  <arg name="takeoff_retry_period_sec" default="1.0" />
+  <arg name="landing_pre_stop_sec" default="0.8" />
 
   <include file="$(find tello_driver)/launch/tello_node.launch">
     <arg name="namespace" value="$(arg namespace)" />
@@ -12,9 +49,18 @@
 
   <node pkg="tello_driver" type="tello_vision_node.py" name="tello_vision_node" output="screen">
     <param name="image_topic" value="/$(arg namespace)/camera/image_raw" />
+    <param name="annotated_topic" value="/$(arg namespace)/camera/detections" />
     <param name="count_topic" value="/$(arg namespace)/object_count" />
     <param name="detector_backend" value="$(arg detector_backend)" />
-    <param name="show_debug" value="true" />
+    <param name="yolo_model" value="$(arg yolo_model)" />
+    <param name="yolo_allow_download" value="$(arg yolo_allow_download)" />
+    <param name="yolo_device" value="$(arg yolo_device)" />
+    <param name="yolo_imgsz" value="$(arg yolo_imgsz)" />
+    <param name="yolo_max_det" value="$(arg yolo_max_det)" />
+    <param name="yolo_person_only" value="$(arg yolo_person_only)" />
+    <param name="min_unique_confirmations" value="$(arg min_unique_confirmations)" />
+    <param name="process_every_n_frames" value="$(arg process_every_n_frames)" />
+    <param name="show_debug" value="$(arg show_debug)" />
   </node>
 
   <node pkg="tello_driver" type="tello_control_node.py" name="tello_control_node" output="screen">
@@ -23,9 +69,40 @@
     <param name="object_count_topic" value="/$(arg namespace)/object_count" />
     <param name="manual_cmd_topic" value="/$(arg namespace)/cmd_vel_user" />
     <param name="enable_autonomy" value="true" />
-    <param name="allow_manual_input" value="true" />
+    <param name="allow_manual_input" value="$(arg allow_manual_input)" />
     <param name="takeoff_on_start" value="true" />
+    <param name="takeoff_settle_sec" value="$(arg takeoff_settle_sec)" />
+    <param name="takeoff_retry_period_sec" value="$(arg takeoff_retry_period_sec)" />
     <param name="safe_wall_distance" value="$(arg safe_wall_distance)" />
+    <param name="safe_wall_distance_xy" value="$(arg safe_wall_distance_xy)" />
+    <param name="safe_wall_distance_z" value="$(arg safe_wall_distance_z)" />
+    <param name="clearance_hysteresis" value="$(arg clearance_hysteresis)" />
+    <param name="avoid_speed" value="$(arg avoid_speed)" />
+    <param name="search_speed_x" value="$(arg search_speed_x)" />
+    <param name="search_speed_y" value="$(arg search_speed_y)" />
+    <param name="search_speed_z" value="$(arg search_speed_z)" />
+    <param name="search_segment_duration" value="$(arg search_segment_duration)" />
+    <param name="search_lane_spacing_y" value="$(arg search_lane_spacing_y)" />
+    <param name="search_layer_spacing_z" value="$(arg search_layer_spacing_z)" />
+    <param name="search_waypoint_tolerance_xy" value="$(arg search_waypoint_tolerance_xy)" />
+    <param name="search_waypoint_tolerance_z" value="$(arg search_waypoint_tolerance_z)" />
+    <param name="search_kp_xy" value="$(arg search_kp_xy)" />
+    <param name="search_kp_z" value="$(arg search_kp_z)" />
+    <param name="room_x_min" value="$(arg room_x_min)" />
+    <param name="room_x_max" value="$(arg room_x_max)" />
+    <param name="room_y_min" value="$(arg room_y_min)" />
+    <param name="room_y_max" value="$(arg room_y_max)" />
+    <param name="room_z_min" value="$(arg room_z_min)" />
+    <param name="room_z_max" value="$(arg room_z_max)" />
     <param name="target_count" value="$(arg target_count)" />
+    <param name="land_on_target_count" value="$(arg land_on_target_count)" />
+    <param name="stop_on_count_event" value="$(arg stop_on_count_event)" />
+    <param name="landing_pre_stop_sec" value="$(arg landing_pre_stop_sec)" />
   </node>
+
+  <group if="$(arg live_view)">
+    <node pkg="image_view" type="image_view" name="live_video_view" output="screen">
+      <remap from="image" to="$(arg live_view_topic)" />
+    </node>
+  </group>
 </launch>

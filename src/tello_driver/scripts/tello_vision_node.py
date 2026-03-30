@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import os
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
@@ -26,6 +27,14 @@ class UniqueObject:
     centroid: Tuple[int, int]
     hist: np.ndarray
     first_seen: rospy.Time
+    last_seen: rospy.Time
+    seen_count: int
+    counted: bool
+
+
+@dataclass
+class TrackLink:
+    uid: int
     last_seen: rospy.Time
 
 
@@ -92,15 +101,23 @@ class TelloVisionNode:
         self.bridge = CvBridge()
         self.show_debug = rospy.get_param("~show_debug", True)
         self.image_topic = rospy.get_param("~image_topic", "/tello/camera/image_raw")
+        self.annotated_topic = rospy.get_param("~annotated_topic", "/tello/camera/detections")
         self.count_topic = rospy.get_param("~count_topic", "/tello/object_count")
         self.detector_backend = rospy.get_param("~detector_backend", "hog").strip().lower()
         self.min_confidence = float(rospy.get_param("~min_confidence", 0.35))
+        self.yolo_model = str(rospy.get_param("~yolo_model", "yolov8n.pt")).strip()
+        self.yolo_allow_download = bool(rospy.get_param("~yolo_allow_download", False))
         self.yolo_device = str(rospy.get_param("~yolo_device", "auto")).strip().lower()
+        self.yolo_imgsz = int(rospy.get_param("~yolo_imgsz", 416))
+        self.yolo_max_det = int(rospy.get_param("~yolo_max_det", 20))
+        self.yolo_person_only = bool(rospy.get_param("~yolo_person_only", True))
+        self.process_every_n_frames = max(1, int(rospy.get_param("~process_every_n_frames", 2)))
         self.max_track_distance_px = float(rospy.get_param("~max_track_distance_px", 90.0))
         self.track_max_age_sec = float(rospy.get_param("~track_max_age_sec", 1.2))
         self.reid_max_age_sec = float(rospy.get_param("~reid_max_age_sec", 120.0))
         self.reid_max_distance_px = float(rospy.get_param("~reid_max_distance_px", 180.0))
         self.reid_max_hist_distance = float(rospy.get_param("~reid_max_hist_distance", 0.35))
+        self.min_unique_confirmations = max(1, int(rospy.get_param("~min_unique_confirmations", 2)))
 
         self.tracker = CentroidTracker(
             max_distance_px=self.max_track_distance_px,
@@ -110,14 +127,19 @@ class TelloVisionNode:
         self.total_count = 0
         self.next_unique_id = 1
         self.unique_objects: Dict[int, UniqueObject] = {}
+        self.track_links: Dict[int, TrackLink] = {}
         self.latest_annotated = None
+        self.frame_index = 0
 
         self.count_pub = rospy.Publisher(self.count_topic, Int32, queue_size=10)
-        self.image_sub = rospy.Subscriber(self.image_topic, Image, self._image_cb, queue_size=1)
+        self.annotated_pub = rospy.Publisher(self.annotated_topic, Image, queue_size=1)
 
         self.hog = None
-        self.yolo_model = None
+        self.yolo_runtime = None
         self._init_detector()
+
+        # Subscribe only after detector init to avoid early callbacks during startup.
+        self.image_sub = rospy.Subscriber(self.image_topic, Image, self._image_cb, queue_size=1)
 
         rospy.on_shutdown(self._on_shutdown)
 
@@ -125,7 +147,7 @@ class TelloVisionNode:
 
     def _init_detector(self):
         if self.detector_backend == "yolo":
-            model_path = rospy.get_param("~yolo_model", "yolov8n.pt")
+            model_path = self._resolve_yolo_model_path(self.yolo_model)
             try:
                 from ultralytics import YOLO  # pylint: disable=import-error
                 import torch  # pylint: disable=import-error
@@ -136,7 +158,7 @@ class TelloVisionNode:
                     rospy.logwarn("CUDA requested but unavailable, using CPU.")
                     self.yolo_device = "cpu"
 
-                self.yolo_model = YOLO(model_path)
+                self.yolo_runtime = YOLO(model_path)
                 rospy.loginfo("Loaded YOLO model from '%s' on device '%s'", model_path, self.yolo_device)
                 return
             except Exception as exc:  # noqa: BLE001
@@ -166,10 +188,13 @@ class TelloVisionNode:
 
     def _detect_yolo(self, frame):
         detections = []
-        results = self.yolo_model.predict(
+        results = self.yolo_runtime.predict(
             source=frame,
             conf=self.min_confidence,
             device=self.yolo_device,
+            imgsz=self.yolo_imgsz,
+            max_det=self.yolo_max_det,
+            classes=[0] if self.yolo_person_only else None,
             verbose=False,
         )
         if not results:
@@ -213,6 +238,31 @@ class TelloVisionNode:
         cy = int((y1 + y2) / 2)
         label = str(track.get("label", "obj"))
         hist = self._compute_hist(frame, track["bbox"])
+        track_id = int(track.get("id", -1))
+
+        # First preference: keep the same unique id for an existing tracker id.
+        if track_id in self.track_links:
+            link = self.track_links[track_id]
+            uid = link.uid
+            if uid in self.unique_objects:
+                obj = self.unique_objects[uid]
+                max_age = rospy.Duration.from_sec(self.reid_max_age_sec)
+                if (stamp - obj.last_seen) <= max_age and obj.label == label:
+                    obj.centroid = (cx, cy)
+                    obj.hist = hist
+                    obj.last_seen = stamp
+                    obj.seen_count += 1
+                    incremented_count = False
+                    if (not obj.counted) and obj.seen_count >= self.min_unique_confirmations:
+                        obj.counted = True
+                        self.total_count += 1
+                        incremented_count = True
+                    self.unique_objects[uid] = obj
+                    self.track_links[track_id] = TrackLink(uid=uid, last_seen=stamp)
+                    track["unique_id"] = uid
+                    track["is_new_unique"] = incremented_count
+                    track["counted"] = obj.counted
+                    return
 
         best_uid = None
         best_score = 10.0
@@ -238,22 +288,43 @@ class TelloVisionNode:
                 best_uid = uid
 
         is_new_unique = best_uid is None
+        incremented_count = False
+
         if is_new_unique:
             best_uid = self.next_unique_id
             self.next_unique_id += 1
-            self.total_count += 1
+            counted = self.min_unique_confirmations <= 1
+            if counted:
+                self.total_count += 1
+                incremented_count = True
 
-        self.unique_objects[best_uid] = UniqueObject(
-            uid=best_uid,
-            label=label,
-            centroid=(cx, cy),
-            hist=hist,
-            first_seen=self.unique_objects[best_uid].first_seen if best_uid in self.unique_objects else stamp,
-            last_seen=stamp,
-        )
+            self.unique_objects[best_uid] = UniqueObject(
+                uid=best_uid,
+                label=label,
+                centroid=(cx, cy),
+                hist=hist,
+                first_seen=stamp,
+                last_seen=stamp,
+                seen_count=1,
+                counted=counted,
+            )
+        else:
+            obj = self.unique_objects[best_uid]
+            obj.centroid = (cx, cy)
+            obj.hist = hist
+            obj.last_seen = stamp
+            obj.seen_count += 1
+            if (not obj.counted) and obj.seen_count >= self.min_unique_confirmations:
+                obj.counted = True
+                self.total_count += 1
+                incremented_count = True
+            self.unique_objects[best_uid] = obj
 
         track["unique_id"] = best_uid
-        track["is_new_unique"] = is_new_unique
+        track["is_new_unique"] = incremented_count
+        track["counted"] = self.unique_objects[best_uid].counted
+        if track_id >= 0:
+            self.track_links[track_id] = TrackLink(uid=best_uid, last_seen=stamp)
 
     def _cleanup_unique(self, stamp):
         max_age = rospy.Duration.from_sec(self.reid_max_age_sec)
@@ -261,15 +332,63 @@ class TelloVisionNode:
         for uid in stale:
             self.unique_objects.pop(uid, None)
 
+        stale_tracks = [tid for tid, link in self.track_links.items() if stamp - link.last_seen > max_age or link.uid not in self.unique_objects]
+        for tid in stale_tracks:
+            self.track_links.pop(tid, None)
+
     def _detect_objects(self, frame):
-        if self.detector_backend == "yolo" and self.yolo_model is not None:
+        if self.detector_backend == "yolo" and self.yolo_runtime is not None:
             return self._detect_yolo(frame)
+        if self.hog is None:
+            rospy.logwarn_throttle(2.0, "Detector not ready yet; skipping frame")
+            return []
         return self._detect_hog(frame)
+
+    def _resolve_yolo_model_path(self, model_spec):
+        if not model_spec:
+            raise ValueError("~yolo_model is empty")
+
+        expanded = os.path.expanduser(model_spec)
+        candidates = []
+
+        if os.path.isabs(expanded):
+            candidates.append(expanded)
+        else:
+            candidates.append(os.path.abspath(expanded))
+            try:
+                import rospkg  # pylint: disable=import-error
+
+                pkg_path = rospkg.RosPack().get_path("tello_driver")
+                ws_root = os.path.abspath(os.path.join(pkg_path, "..", ".."))
+                candidates.append(os.path.join(ws_root, expanded))
+                candidates.append(os.path.join(ws_root, "models", expanded))
+                candidates.append(os.path.join(pkg_path, "models", expanded))
+            except Exception:
+                pass
+
+            candidates.append(os.path.join(os.path.expanduser("~/.config/Ultralytics"), expanded))
+            candidates.append(os.path.join(os.path.expanduser("~/.cache/ultralytics"), expanded))
+            candidates.append(os.path.join(os.path.expanduser("~/.cache/torch/hub/checkpoints"), expanded))
+
+        for path in candidates:
+            if os.path.isfile(path):
+                return path
+
+        if self.yolo_allow_download:
+            rospy.logwarn("YOLO model '%s' not found locally. Download is enabled; trying Ultralytics fetch.", model_spec)
+            return model_spec
+
+        raise FileNotFoundError(
+            "YOLO model '%s' not found locally and download disabled. Set ~yolo_model to a local .pt path or set ~yolo_allow_download:=true when internet is available." % model_spec
+        )
 
     def _draw(self, frame, tracks):
         for track in tracks:
             x1, y1, x2, y2 = track["bbox"]
-            color = (0, 220, 0) if not track.get("is_new_unique", False) else (0, 160, 255)
+            if not track.get("counted", False):
+                color = (0, 220, 220)
+            else:
+                color = (0, 220, 0) if not track.get("is_new_unique", False) else (0, 160, 255)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             text = "{} u{} t{} {:.2f}".format(
                 track["label"],
@@ -289,6 +408,10 @@ class TelloVisionNode:
             rospy.logwarn_throttle(2.0, "cv_bridge conversion failed: %s", exc)
             return
 
+        self.frame_index += 1
+        if self.process_every_n_frames > 1 and (self.frame_index % self.process_every_n_frames) != 0:
+            return
+
         detections = self._detect_objects(frame)
         stamp = rospy.Time.now()
         tracks = self.tracker.update(detections, stamp)
@@ -300,6 +423,13 @@ class TelloVisionNode:
 
         self._draw(frame, tracks)
         self.latest_annotated = frame
+
+        try:
+            annotated_msg = self.bridge.cv2_to_imgmsg(frame, encoding="bgr8")
+            annotated_msg.header = msg.header
+            self.annotated_pub.publish(annotated_msg)
+        except CvBridgeError as exc:
+            rospy.logwarn_throttle(2.0, "cv_bridge annotated conversion failed: %s", exc)
 
         rospy.loginfo_throttle(
             2.0,

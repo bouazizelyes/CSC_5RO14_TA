@@ -3,8 +3,34 @@
   <arg name="namespace" default="tello" />
   <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
   <arg name="detector_backend" default="hog" />
+  <arg name="yolo_model" default="yolov8n.pt" />
+  <arg name="yolo_device" default="auto" />
+  <arg name="yolo_imgsz" default="416" />
+  <arg name="yolo_max_det" default="20" />
+  <arg name="yolo_person_only" default="true" />
+  <arg name="min_unique_confirmations" default="2" />
+  <arg name="process_every_n_frames" default="2" />
+  <arg name="show_debug" default="false" />
   <arg name="safe_wall_distance" default="1.0" />
   <arg name="target_count" default="8" />
+  <arg name="room_x_min" default="-3.0" />
+  <arg name="room_x_max" default="3.0" />
+  <arg name="room_y_min" default="-3.0" />
+  <arg name="room_y_max" default="3.0" />
+  <arg name="room_z_min" default="0.7" />
+  <arg name="room_z_max" default="1.8" />
+  <arg name="avoid_speed" default="0.2" />
+  <arg name="search_speed_x" default="0.12" />
+  <arg name="search_speed_y" default="0.10" />
+  <arg name="search_speed_z" default="0.08" />
+  <arg name="search_segment_duration" default="5.0" />
+  <arg name="search_lane_spacing_y" default="0.8" />
+  <arg name="search_layer_spacing_z" default="0.35" />
+  <arg name="search_waypoint_tolerance_xy" default="0.20" />
+  <arg name="search_waypoint_tolerance_z" default="0.15" />
+  <arg name="search_kp_xy" default="0.8" />
+  <arg name="search_kp_z" default="0.8" />
+  <arg name="clearance_hysteresis" default="0.25" />
 
   <arg name="output_root" default="$(env HOME)/tello_mapping_data" />
   <arg name="capture_fps" default="2.0" />
@@ -13,8 +39,34 @@
     <arg name="namespace" value="$(arg namespace)" />
     <arg name="pose_topic" value="$(arg pose_topic)" />
     <arg name="detector_backend" value="$(arg detector_backend)" />
+    <arg name="yolo_model" value="$(arg yolo_model)" />
+    <arg name="yolo_device" value="$(arg yolo_device)" />
+    <arg name="yolo_imgsz" value="$(arg yolo_imgsz)" />
+    <arg name="yolo_max_det" value="$(arg yolo_max_det)" />
+    <arg name="yolo_person_only" value="$(arg yolo_person_only)" />
+    <arg name="min_unique_confirmations" value="$(arg min_unique_confirmations)" />
+    <arg name="process_every_n_frames" value="$(arg process_every_n_frames)" />
+    <arg name="show_debug" value="$(arg show_debug)" />
     <arg name="safe_wall_distance" value="$(arg safe_wall_distance)" />
     <arg name="target_count" value="$(arg target_count)" />
+    <arg name="room_x_min" value="$(arg room_x_min)" />
+    <arg name="room_x_max" value="$(arg room_x_max)" />
+    <arg name="room_y_min" value="$(arg room_y_min)" />
+    <arg name="room_y_max" value="$(arg room_y_max)" />
+    <arg name="room_z_min" value="$(arg room_z_min)" />
+    <arg name="room_z_max" value="$(arg room_z_max)" />
+    <arg name="avoid_speed" value="$(arg avoid_speed)" />
+    <arg name="search_speed_x" value="$(arg search_speed_x)" />
+    <arg name="search_speed_y" value="$(arg search_speed_y)" />
+    <arg name="search_speed_z" value="$(arg search_speed_z)" />
+    <arg name="search_segment_duration" value="$(arg search_segment_duration)" />
+    <arg name="search_lane_spacing_y" value="$(arg search_lane_spacing_y)" />
+    <arg name="search_layer_spacing_z" value="$(arg search_layer_spacing_z)" />
+    <arg name="search_waypoint_tolerance_xy" value="$(arg search_waypoint_tolerance_xy)" />
+    <arg name="search_waypoint_tolerance_z" value="$(arg search_waypoint_tolerance_z)" />
+    <arg name="search_kp_xy" value="$(arg search_kp_xy)" />
+    <arg name="search_kp_z" value="$(arg search_kp_z)" />
+    <arg name="clearance_hysteresis" value="$(arg clearance_hysteresis)" />
   </include>
 
   <node pkg="tello_driver" type="mapping_logger_node.py" name="mapping_logger_node" output="screen">

@@ -2,8 +2,16 @@
 <launch>
   <arg name="namespace" default="tello" />
   <arg name="detector_backend" default="yolo" />
+  <arg name="yolo_model" default="yolov8n.pt" />
+  <arg name="yolo_allow_download" default="false" />
+  <arg name="yolo_device" default="auto" />
+  <arg name="yolo_imgsz" default="416" />
+  <arg name="yolo_max_det" default="20" />
+  <arg name="yolo_person_only" default="true" />
+  <arg name="process_every_n_frames" default="2" />
   <arg name="show_debug" default="true" />
   <arg name="pose_topic" default="/vrpn_client_node/tello/pose" />
+  <arg name="use_fake_pose" default="true" />
 
   <arg name="fake_pose_rate_hz" default="20.0" />
   <arg name="fake_pose_x" default="0.0" />
@@ -18,20 +26,29 @@
     <arg name="namespace" value="$(arg namespace)" />
     <arg name="launch_driver" value="false" />
     <arg name="detector_backend" value="$(arg detector_backend)" />
+    <arg name="yolo_model" value="$(arg yolo_model)" />
+    <arg name="yolo_allow_download" value="$(arg yolo_allow_download)" />
+    <arg name="yolo_device" value="$(arg yolo_device)" />
+    <arg name="yolo_imgsz" value="$(arg yolo_imgsz)" />
+    <arg name="yolo_max_det" value="$(arg yolo_max_det)" />
+    <arg name="yolo_person_only" value="$(arg yolo_person_only)" />
+    <arg name="process_every_n_frames" value="$(arg process_every_n_frames)" />
     <arg name="show_debug" value="$(arg show_debug)" />
   </include>
 
-  <node pkg="tello_driver" type="fake_pose_publisher.py" name="fake_pose_publisher" output="screen">
-    <param name="pose_topic" value="$(arg pose_topic)" />
-    <param name="rate_hz" value="$(arg fake_pose_rate_hz)" />
-    <param name="x" value="$(arg fake_pose_x)" />
-    <param name="y" value="$(arg fake_pose_y)" />
-    <param name="z" value="$(arg fake_pose_z)" />
-    <param name="qx" value="0.0" />
-    <param name="qy" value="0.0" />
-    <param name="qz" value="0.0" />
-    <param name="qw" value="1.0" />
-  </node>
+  <group if="$(arg use_fake_pose)">
+    <node pkg="tello_driver" type="fake_pose_publisher.py" name="fake_pose_publisher" output="screen">
+      <param name="pose_topic" value="$(arg pose_topic)" />
+      <param name="rate_hz" value="$(arg fake_pose_rate_hz)" />
+      <param name="x" value="$(arg fake_pose_x)" />
+      <param name="y" value="$(arg fake_pose_y)" />
+      <param name="z" value="$(arg fake_pose_z)" />
+      <param name="qx" value="0.0" />
+      <param name="qy" value="0.0" />
+      <param name="qz" value="0.0" />
+      <param name="qw" value="1.0" />
+    </node>
+  </group>
 
   <include file="$(find tello_driver)/launch/phase3_localization.launch">
     <arg name="namespace" value="$(arg namespace)" />

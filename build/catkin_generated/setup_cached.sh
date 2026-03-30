@@ -5,10 +5,13 @@
 # it emulates the modifications of the setup script without recurring computations
 
 # new environment variables
+export PS1='(.venv) $ '
+export VIRTUAL_ENV='/home/elyes/CATKIN_WS/.venv'
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/elyes/CATKIN_WS/devel:$CMAKE_PREFIX_PATH"
 export LD_LIBRARY_PATH="/home/elyes/CATKIN_WS/devel/lib:$LD_LIBRARY_PATH"
+export PATH="/home/elyes/CATKIN_WS/.venv/bin:$PATH"
 export PKG_CONFIG_PATH="/home/elyes/CATKIN_WS/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD='/home/elyes/CATKIN_WS/build'
 export PYTHONPATH="/home/elyes/CATKIN_WS/devel/lib/python3/dist-packages:$PYTHONPATH"

@@ -486,19 +486,14 @@ class TelloNode(tello.Tello):
 
     def framegrabber_loop(self):
         av = self.pyav
-        # Repeatedly try to connect
         vs = self.get_video_stream()
+        retry = 0
+
+        # Keep trying until shutdown; transient decode/open failures are expected on Tello streams.
         while self.state != self.STATE_QUIT:
+            container = None
             try:
                 container = av.open(vs)
-                break
-            except BaseException as err:
-                rospy.logerr('fgrab: pyav stream failed - %s' % str(err))
-                time.sleep(1.0)
-
-        # Once connected, process frames till drone/stream closes
-        while self.state != self.STATE_QUIT:
-            try:
                 # vs blocks, dies on self.stop
                 for frame in container.decode(video=0):
                     img = np.array(frame.to_image())
@@ -509,10 +504,32 @@ class TelloNode(tello.Tello):
                         rospy.logerr('fgrab: cv bridge failed - %s' % str(err))
                         continue
                     self.pub_image_raw.publish(img_msg)
-                    self.pub_caminfo.publish(self.caminfo)                    
-                break
+                    self.pub_caminfo.publish(self.caminfo)
+
+                # Decode loop ended without explicit shutdown; reopen stream.
+                if self.state != self.STATE_QUIT:
+                    rospy.logwarn('fgrab: decoder stream ended, reopening')
             except BaseException as err:
-                rospy.logerr('fgrab: pyav decoder failed - %s' % str(err))
+                retry += 1
+                rospy.logwarn('fgrab: pyav stream failed - %s (retry %d)' % (str(err), retry))
+
+                # Ask drone for SPS/PPS and restart video to recover from bad keyframe state.
+                try:
+                    self.send_req_video_sps_pps()
+                except BaseException:
+                    pass
+                try:
+                    self.start_video()
+                except BaseException:
+                    pass
+
+                time.sleep(1.0)
+            finally:
+                if container is not None:
+                    try:
+                        container.close()
+                    except BaseException:
+                        pass
 
 
     def cb_takeoff(self, msg):

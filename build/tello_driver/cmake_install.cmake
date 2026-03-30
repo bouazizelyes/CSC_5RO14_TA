@@ -125,6 +125,10 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
     "/home/elyes/CATKIN_WS/src/tello_driver/scripts/fake_pose_publisher.py"
     "/home/elyes/CATKIN_WS/src/tello_driver/scripts/mapping_logger_node.py"
     "/home/elyes/CATKIN_WS/src/tello_driver/scripts/run_bench_safe.sh"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/run_bench_vrpn.sh"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/run_phase4_autonomy.sh"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/run_simple_patrol.sh"
+    "/home/elyes/CATKIN_WS/src/tello_driver/scripts/simple_patrol_node.py"
     )
 endif()
 
